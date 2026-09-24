@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aplikasi Ulangan Harian Mandiri</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
+        body { background-color: #f4f6f9; color: #333; padding: 15px; display: flex; justify-content: center; }
+        .container { width: 100%; max-width: 600px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 20px; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        .timer-box { background: #e74c3c; color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 18px; border-radius: 8px; margin-bottom: 20px; position: sticky; top: 10px; z-index: 100; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; font-weight: 600; margin-bottom: 5px; color: #34495e; }
+        .input-group input, .input-group textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 16px; }
+        .soal-card { background: #fdfdfd; border: 1px solid #eaeedf; border-left: 5px solid #3498db; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .soal-text { font-weight: 600; font-size: 16px; margin-bottom: 12px; color: #2c3e50; }
+        .options label { display: block; background: #f8f9fa; padding: 10px; margin-bottom: 8px; border-radius: 6px; cursor: pointer; border: 1px solid #edf2f7; transition: 0.2s; font-size: 15px; }
+        .options label:hover { background: #eef2f7; }
+        .options input { margin-right: 10px; transform: scale(1.2); }
+        .btn-submit { width: 100%; background: #2ecc71; color: white; border: none; padding: 14px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+        .btn-submit:hover { background: #27ae60; }
+        .hidden { display: none; }
+        .timeout-msg { text-align: center; color: #e74c3c; font-size: 20px; font-weight: bold; padding: 4px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>ULANGAN HARIAN SISWA</h2>
+    
+    <!-- Kotak Timer Waktu Mundur -->
+    <div id="timerContainer" class="timer-box">
+        Sisa Waktu: <span id="timeDisplay">30:00</span>
+    </div>
+
+    <form id="quizForm">
+        <!-- Identitas Siswa -->
+        <div class="soal-card" style="border-left-color: #9b59b6;">
+            <div class="input-group">
+                <label for="nama">Nama Lengkap Siswa:</label>
+                <input type="text" id="nama" required placeholder="Masukkan nama Anda...">
+            </div>
+            <div class="input-group" style="margin-bottom: 0;">
+                <label for="kelas">Nomor Absen / Kelas:</label>
+                <input type="text" id="kelas" required placeholder="Contoh: 01 / Kelas 9A">
+            </div>
+        </div>
+
+        <!-- SOAL 1: PILIHAN GANDA -->
+        <div class="soal-card">
+            <div class="soal-text">1. Apa ibukota negara Indonesia saat ini?</div>
+            <div class="options">
+                <label><input type="radio" name="q1" value="A" required> A. Surabaya</label>
+                <label><input type="radio" name="q1" value="B"> B. Jakarta</label>
+                <label><input type="radio" name="q1" value="C"> C. Bandung</label>
+                <label><input type="radio" name="q1" value="D"> D. Medan</label>
+            </div>
+        </div>
+
+        <!-- SOAL 2: PILIHAN GANDA -->
+        <div class="soal-card">
+            <div class="soal-text">2. Hasil dari operasi matematika 5 + 3 x 2 adalah...</div>
+            <div class="options">
+                <label><input type="radio" name="q2" value="A" required> A. 16</label>
+                <label><input type="radio" name="q2" value="B"> B. 11</label>
+                <label><input type="radio" name="q2" value="C"> C. 13</label>
+                <label><input type="radio" name="q2" value="D"> D. 10</label>
+            </div>
+        </div>
+
+        <!-- SOAL 3: ESSAY -->
+        <div class="soal-card">
+            <div class="soal-text">3. Jelaskan secara singkat apa yang dimaksud dengan fotosintesis pada tumbuhan!</div>
+            <div class="input-group">
+                <textarea id="q3" rows="4" required placeholder="Ketik jawaban esai Anda di sini..."></textarea>
+            </div>
+        </div>
+
+        <!-- SOAL 4: ESSAY -->
+        <div class="soal-card">
+            <div class="soal-text">4. Sebutkan minimal 3 cara untuk menjaga kelestarian lingkungan hidup di sekitar rumah!</div>
+            <div class="input-group">
+                <textarea id="q4" rows="4" required placeholder="Ketik jawaban esai Anda di sini..."></textarea>
+            </div>
+        </div>
+
+        <button type="submit" id="btnSubmit" class="btn-submit">KIRIM JAWABAN ULANGAN</button>
+    </form>
+    
+    <div id="timeoutBlock" class="hidden text-center">
+        <p class="timeout-msg">Waktu Ujian Habis!</p>
+        <p style="text-align:center; color:#7f8c8d; margin-top:10px;">Jawaban Anda tidak dapat dikirim karena melewati batas waktu.</p>
+    </div>
+</div>
+
+<script>
+    // --- PENGATURAN DURASI WAKTU UJIAN (Dalam Menit) ---
+    const DURASI_MENIT = 90; 
+    
+    // --- PENGATURAN NOMOR WHATSAPP GURU ---
+    // Gunakan kode negara, contoh: 6281372255551 (Jangan pakai spasi atau tanda +)
+    const NOMOR_WHATSAPP_GURU = "6281372255551"; 
+
+    let totalDetik = DURASI_MENIT * 90;
+    const timeDisplay = document.getElementById('timeDisplay');
+    const quizForm = document.getElementById('quizForm');
+    const timeoutBlock = document.getElementById('timeoutBlock');
+    const timerContainer = document.getElementById('timerContainer');
+
+    // Sistem Hitung Mundur (Timer)
+    const hitungMundur = setInterval(() => {
+        let menit = Math.floor(totalDetik / 60);
+        let detik = totalDetik % 60;
+
+        // Format tampilan agar selalu 2 digit (00:00)
+        menit = menit < 10 ? '0' + menit : menit;
+        detik = detik < 10 ? '0' + detik : detik;
+
+        timeDisplay.textContent = `${menit}:${detik}`;
+
+        if (totalDetik <= 0) {
+            clearInterval(hitungMundur);
+            kunciUjian();
+        }
+        totalDetik--;
+    }, 1000);
+
+    // Fungsi otomatis jika waktu habis
+    function kunciUjian() {
+        quizForm.classList.add('hidden');
+        timerContainer.style.background = '#7f8c8d';
+        timeDisplay.textContent = "WAKTU HABIS";
+        timeoutBlock.classList.remove('hidden');
+    }
+
+    // Fungsi Pengiriman Jawaban via WhatsApp
+    quizForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        clearInterval(hitungMundur); // Hentikan timer
+
+        const nama = document.getElementById('nama').value;
+        const kelas = document.getElementById('kelas').value;
+        
+        // Mengambil jawaban pilihan ganda
+        const q1 = document.querySelector('input[name="q1"]:checked').value;
+        const q2 = document.querySelector('input[name="q2"]:checked').value;
+        
+        // Mengambil jawaban esai
+        const q3 = document.getElementById('q3').value;
+        const q4 = document.getElementById('q4').value;
+
+        // Menyusun teks laporan jawaban untuk dikirim ke WhatsApp guru
+        const teksWhatsApp = `*HASIL ULANGAN HARIAN SISWA*%0A%0A` +
+                             `*Identitas Siswa:*%0A` +
+                             `• Nama: ${encodeURIComponent(nama)}%0A` +
+                             `• Kelas/Absen: ${encodeURIComponent(kelas)}%0A%0A` +
+                             `*Jawaban Pilihan Ganda:*%0A` +
+                             `• Soal 1: ${q1}%0A` +
+                             `• Soal 2: ${q2}%0A%0A` +
+                             `*Jawaban Esai:*%0A` +
+                             `• Soal 3: ${encodeURIComponent(q3)}%0A` +
+                             `• Soal 4: ${encodeURIComponent(q4)}`;
+
+        // Membuka WhatsApp otomatis
+        const urlWhatsApp = `https://api.whatsapp.com/send?phone=${081372255551}&text=${teksWhatsApp}`;
+        window.location.href = urlWhatsApp;
+    });
+</script>
+
+</body>
+</html>
